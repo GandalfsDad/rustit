@@ -1,6 +1,5 @@
 use super::blob::Blob;
 use crate::hash::rhash::RHash;
-use core::hash;
 use std::{fs, io::Error};
 
 pub struct Tree {

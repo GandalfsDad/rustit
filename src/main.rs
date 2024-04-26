@@ -1,5 +1,6 @@
-use rustit::objects::blob::Blob;
-use rustit::objects::tree::Tree;
+use rustit::objects::{blob::Blob, tree::Tree, commit::Commit, commit::CommitEntry};
+use rustit::hash::rhash::RHash;
+
 
 
 fn main() {
@@ -26,6 +27,9 @@ fn main() {
 
     let mut tree: Tree = Tree::try_new("./src").expect("Error reading file");
     tree.save();
-    
 
+    let mut commit = Commit::new(tree, "Initial commit".to_string(), None);
+    commit.save();
+    
+    println!("Original Commit {}", commit.get_hash().as_string());
 }
