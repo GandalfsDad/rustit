@@ -1,6 +1,6 @@
 use super::blob::Blob;
 use crate::hash::rhash::RHash;
-use std::{fs, io::Error};
+use std::{f32::consts::E, fs, io::Error};
 
 pub struct Tree {
     pub entries: Vec<TreeEntry>,
@@ -17,7 +17,14 @@ pub enum TreeEntry {
 impl Tree {
     pub fn try_new(dir_path: &str) -> Result<Self, Error> {
         let name = dir_path.split("/").last().unwrap().to_string();
-        let entries = Tree::get_objects(dir_path)?;
+        let entries = Tree::get_entries_full_dir(dir_path)?;
+        let content = Tree::gen_content(&entries);
+        let hash = Tree::gen_hash(&content)?;
+        Ok(Tree { entries, content,  hash, name })
+    }
+
+    pub fn from_paths(paths: Vec<String>, name: String) -> Result<Self, Error> {
+        let entries = Tree::get_entries_from_paths(&paths)?;
         let content = Tree::gen_content(&entries);
         let hash = Tree::gen_hash(&content)?;
         Ok(Tree { entries, content,  hash, name })
@@ -39,20 +46,28 @@ impl Tree {
         Ok(RHash::new(&content))
     }
 
-    fn get_objects(dir_path: &str) -> Result<Vec<TreeEntry>, Error> {
+    fn get_entries_full_dir(dir_path: &str) -> Result<Vec<TreeEntry>, Error> {
         let path_entries = fs::read_dir(dir_path)?;
+
+        //Convert the path_entries to a Vec of string slice paths
+        let paths: Vec<String> = path_entries
+            .map(|entry| entry.unwrap().path().to_str().unwrap().to_string())
+            .collect();
+
+        Ok(Tree::get_entries_from_paths(&paths)?)
+    }
+
+    fn get_entries_from_paths(paths: &[String]) -> Result<Vec<TreeEntry>, Error> {
         let mut entries = Vec::new();
 
-        for entry in path_entries {
-            let entry = entry?;
-            let path = entry.path();
-            let metadata = entry.metadata()?;
+        for path in paths {
+            let metadata = fs::metadata(path)?;
 
             if metadata.is_dir() {
-                let tree = Tree::try_new(path.to_str().unwrap())?;
+                let tree = Tree::try_new(&path)?;
                 entries.push(TreeEntry::Tree(tree));
             } else {
-                let blob = Blob::try_new(path.to_str().unwrap())?;
+                let blob = Blob::try_new(&path)?;
                 entries.push(TreeEntry::Blob(blob));
             }
         }
